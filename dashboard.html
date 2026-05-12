@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>두리서기 A안 Admin</title>
+  <style>
+    :root {
+      --midnight: #0a0a0a;
+      --storm: #161616;
+      --gunmetal: #282828;
+      --slate: #686868;
+      --ash: #b2b2b2;
+      --silver: #c2c2c2;
+      --ghost: #e5e5e5;
+      --white: #ffffff;
+      --glow: #6b62f2;
+      --warm: #c49577;
+      --blue: #4867af;
+      --card: rgba(212, 212, 212, 0.1);
+      --glass: rgba(0, 0, 0, 0.32);
+      --line: rgba(229, 229, 229, 0.14);
+      --line-strong: rgba(229, 229, 229, 0.28);
+      --font-body: "DM Sans", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --font-heading: Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ghost);
+      background:
+        radial-gradient(circle at 82% 8%, rgba(107, 98, 242, 0.32), transparent 28%),
+        radial-gradient(circle at 14% 10%, rgba(72, 103, 175, 0.24), transparent 28%),
+        radial-gradient(circle at 76% 88%, rgba(196, 149, 119, 0.16), transparent 34%),
+        var(--midnight);
+      font-family: var(--font-body);
+      letter-spacing: 0.4px;
+    }
+
+    body::before {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      content: "";
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+      background-size: 64px 64px;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.88), transparent 86%);
+    }
+
+    button { font: inherit; }
+
+    .admin-shell {
+      position: relative;
+      width: min(1280px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 18px 0 40px;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 14px;
+      min-height: 50px;
+      margin-bottom: 14px;
+      padding: 8px 8px 8px 16px;
+      border: 1px solid var(--line);
+      border-radius: 9999px;
+      background: rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(4px);
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      gap: 12px;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 32px;
+      height: 32px;
+      flex: 0 0 auto;
+      place-items: center;
+      border: 1px solid var(--line-strong);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--white);
+      font-family: var(--font-heading);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .breadcrumb {
+      min-width: 0;
+      overflow: hidden;
+      color: var(--ash);
+      font-size: 13px;
+      line-height: 1.5;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .breadcrumb strong {
+      color: var(--white);
+      font-weight: 600;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pill,
+    .ghost-button,
+    .tab-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 34px;
+      border-radius: 9999px;
+      padding: 7px 12px;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .pill {
+      border: 1px solid rgba(255, 255, 255, 0.82);
+      background: var(--white);
+      color: var(--storm);
+      cursor: pointer;
+    }
+
+    .ghost-button,
+    .tab-button {
+      border: 1px solid var(--line-strong);
+      background: transparent;
+      color: var(--white);
+      text-decoration: none;
+    }
+
+    .tabs {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+      padding: 6px;
+      border: 1px solid var(--line);
+      border-radius: 9999px;
+      background: rgba(0, 0, 0, 0.24);
+      width: max-content;
+      max-width: 100%;
+      overflow-x: auto;
+    }
+
+    .tab-button {
+      cursor: pointer;
+      color: var(--ash);
+      border-color: transparent;
+    }
+
+    .tab-button.is-active {
+      border-color: rgba(255, 255, 255, 0.82);
+      background: var(--white);
+      color: var(--storm);
+    }
+
+    .view { display: none; }
+    .view.is-active { display: block; }
+
+    .hero-panel {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) 320px;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .hero-copy,
+    .system-card,
+    .metric-card,
+    .panel {
+      border: 1px solid var(--line);
+      background: var(--card);
+      backdrop-filter: blur(4px);
+      filter: drop-shadow(rgba(255, 255, 255, 0.02) 0 3px 4.5px) drop-shadow(rgba(0, 0, 0, 0.1) 0 4px 3px);
+    }
+
+    .hero-copy {
+      min-height: 184px;
+      padding: 22px;
+      border-radius: 28px;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent 32%),
+        rgba(0, 0, 0, 0.2);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 12px;
+      color: var(--ash);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--white), var(--glow));
+      content: "";
+      box-shadow: 0 0 20px rgba(107, 98, 242, 0.75);
+    }
+
+    h2,
+    h3 {
+      margin: 0;
+      font-family: var(--font-heading);
+      letter-spacing: normal;
+    }
+
+    .dashboard-heading {
+      margin: 0;
+      max-width: 620px;
+      color: var(--white);
+      font-family: var(--font-body);
+      font-size: clamp(20px, 2vw, 28px);
+      font-weight: 700;
+      line-height: 1.18;
+      letter-spacing: 0.2px;
+    }
+
+    .hero-copy p {
+      max-width: 700px;
+      margin: 12px 0 0;
+      color: var(--silver);
+      font-size: 14px;
+      line-height: 1.56;
+    }
+
+    .status-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 28px;
+      padding: 5px 10px;
+      border: 1px solid var(--line);
+      border-radius: 9999px;
+      background: rgba(0, 0, 0, 0.24);
+      color: var(--ash);
+      font-size: 12px;
+      line-height: 1;
+    }
+
+    .system-card {
+      display: grid;
+      align-content: start;
+      min-height: 184px;
+      padding: 18px;
+      border-radius: 24px;
+      background: rgba(0, 0, 0, 0.22);
+    }
+
+    .system-card h2 {
+      color: var(--ghost);
+      font-size: 16px;
+      font-weight: 500;
+      line-height: 1.33;
+    }
+
+    .system-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .system-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(229, 229, 229, 0.08);
+      color: var(--ash);
+      font-size: 13px;
+    }
+
+    .system-item:last-child { border-bottom: 0; }
+    .system-value { color: var(--white); font-weight: 700; }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .metric-card {
+      min-height: 106px;
+      padding: 12px;
+      border-radius: 16px;
+    }
+
+    .metric-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      min-height: 34px;
+      color: var(--ash);
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.5;
+    }
+
+    .metric-icon {
+      display: grid;
+      width: 26px;
+      height: 26px;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      color: var(--white);
+      background: rgba(0, 0, 0, 0.2);
+      font-size: 11px;
+    }
+
+    .metric-value {
+      display: block;
+      color: var(--white);
+      font-family: var(--font-heading);
+      font-size: clamp(22px, 2.1vw, 30px);
+      font-weight: 500;
+      line-height: 1;
+      letter-spacing: -0.672px;
+    }
+
+    .metric-note {
+      display: block;
+      margin-top: 6px;
+      color: var(--slate);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.12fr) minmax(340px, 0.88fr);
+      gap: 12px;
+    }
+
+    .panel {
+      padding: 16px;
+      border-radius: 18px;
+    }
+
+    .panel + .panel {
+      margin-top: 12px;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .panel-title {
+      color: var(--white);
+      font-size: 17px;
+      font-weight: 500;
+      line-height: 1.33;
+    }
+
+    .panel-subtitle {
+      margin-top: 3px;
+      color: var(--slate);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .updated {
+      color: var(--slate);
+      font-size: 13px;
+      line-height: 1.45;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .funnel {
+      display: grid;
+      gap: 10px;
+    }
+
+    .funnel-step {
+      display: grid;
+      grid-template-columns: 108px minmax(0, 1fr) 72px;
+      align-items: center;
+      gap: 12px;
+      padding: 11px;
+      border: 1px solid rgba(229, 229, 229, 0.1);
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.22);
+    }
+
+    .funnel-name {
+      color: var(--silver);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .funnel-bar,
+    .spark-bar {
+      overflow: hidden;
+      border-radius: 9999px;
+      background: rgba(0, 0, 0, 0.34);
+    }
+
+    .funnel-bar {
+      height: 10px;
+      border: 1px solid rgba(229, 229, 229, 0.1);
+    }
+
+    .funnel-bar span,
+    .spark-bar span {
+      display: block;
+      width: var(--width);
+      height: 100%;
+      border-radius: inherit;
+    }
+
+    .funnel-bar span {
+      background: linear-gradient(90deg, rgba(107, 98, 242, 0.9), rgba(255, 255, 255, 0.86));
+      box-shadow: 0 0 20px rgba(107, 98, 242, 0.38);
+    }
+
+    .funnel-value {
+      color: var(--white);
+      font-family: var(--font-heading);
+      font-size: 17px;
+      line-height: 1;
+      text-align: right;
+    }
+
+    .rate-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .rate-card {
+      padding: 12px;
+      border: 1px solid rgba(229, 229, 229, 0.1);
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.2);
+      color: var(--ash);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .rate-card strong {
+      display: block;
+      margin-top: 8px;
+      color: var(--white);
+      font-family: var(--font-heading);
+      font-size: 22px;
+      font-weight: 500;
+      line-height: 1.1;
+    }
+
+    .table-wrap {
+      overflow: hidden;
+      border: 1px solid rgba(229, 229, 229, 0.1);
+      border-radius: 10px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(229, 229, 229, 0.08);
+      color: var(--ash);
+      font-size: 13px;
+      line-height: 1.45;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    th:first-child,
+    td:first-child {
+      text-align: left;
+    }
+
+    th {
+      color: var(--slate);
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    .lead-phone {
+      color: var(--white);
+      font-weight: 700;
+    }
+
+    .lead-email {
+      color: var(--silver);
+      text-transform: none;
+    }
+
+    .spark {
+      display: grid;
+      gap: 8px;
+    }
+
+    .spark-row {
+      display: grid;
+      grid-template-columns: 62px minmax(0, 1fr) 110px;
+      align-items: center;
+      gap: 12px;
+      color: var(--ash);
+      font-size: 13px;
+    }
+
+    .spark-bar { height: 9px; }
+
+    .spark-bar span {
+      background: linear-gradient(90deg, var(--blue), var(--silver), var(--warm));
+    }
+
+    .spark-count {
+      color: var(--silver);
+      text-align: right;
+    }
+
+    .empty,
+    .error {
+      padding: 12px;
+      border: 1px solid rgba(229, 229, 229, 0.1);
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.22);
+      color: var(--ash);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .error { color: #f0b9b9; }
+
+    @media (max-width: 980px) {
+      .hero-panel,
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .metric-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .admin-shell {
+        width: min(100% - 24px, 520px);
+        padding-top: 12px;
+      }
+
+      .topbar {
+        align-items: stretch;
+        grid-template-columns: 1fr;
+        border-radius: 24px;
+        padding: 12px;
+      }
+
+      .top-actions {
+        flex-wrap: wrap;
+      }
+
+      .tabs {
+        width: 100%;
+      }
+
+      .tab-button {
+        flex: 1 0 auto;
+      }
+
+      .hero-copy {
+        min-height: auto;
+        padding: 18px;
+        border-radius: 22px;
+      }
+
+      .dashboard-heading { font-size: 22px; }
+
+      .metric-grid,
+      .rate-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .funnel-step {
+        grid-template-columns: 1fr;
+      }
+
+      .funnel-value {
+        text-align: left;
+      }
+
+      .spark-row {
+        grid-template-columns: 58px minmax(0, 1fr);
+      }
+
+      .spark-count {
+        grid-column: 2;
+        text-align: left;
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="admin-shell">
+    <div class="topbar">
+      <div class="brand-row">
+        <div class="brand-mark">DS</div>
+        <div class="breadcrumb">두리서기 / <strong>랜딩페이지 A</strong> / Admin</div>
+      </div>
+      <div class="top-actions">
+        <a class="ghost-button" href="/" target="_blank" rel="noreferrer">랜딩페이지 열기</a>
+        <button class="pill" type="button" id="refreshButton">새로고침</button>
+      </div>
+    </div>
+
+    <div class="tabs" role="tablist" aria-label="대시보드 보기">
+      <button class="tab-button is-active" type="button" data-view-target="overviewView">성과 요약</button>
+      <button class="tab-button" type="button" data-view-target="leadsView">신청자 목록</button>
+    </div>
+
+    <section class="view is-active" id="overviewView">
+      <section class="hero-panel">
+        <div class="hero-copy">
+          <p class="eyebrow">Command Center</p>
+          <h1 class="dashboard-heading">전환 상황을 한 화면에서 봅니다.</h1>
+          <p>방문, 체류, CTA 클릭, 신청 제출을 같은 콘솔에서 확인합니다. 현재 화면은 자동 갱신하지 않고, 열 때와 새로고침 버튼을 누를 때 최신값을 가져옵니다.</p>
+          <div class="status-row">
+            <span class="status-chip">Variant A</span>
+            <span class="status-chip">Supabase Connected</span>
+            <span class="status-chip" id="updatedAt">업데이트 대기 중</span>
+          </div>
+        </div>
+
+        <aside class="system-card">
+          <div>
+            <h2>데이터 상태</h2>
+            <div class="system-list">
+              <div class="system-item">
+                <span>이벤트 테이블</span>
+                <span class="system-value" id="eventHealth">대기</span>
+              </div>
+              <div class="system-item">
+                <span>리드 테이블</span>
+                <span class="system-value" id="leadHealth">대기</span>
+              </div>
+              <div class="system-item">
+                <span>집계 기준</span>
+                <span class="system-value">최근 10,000건</span>
+              </div>
+              <div class="system-item">
+                <span>갱신 방식</span>
+                <span class="system-value">수동</span>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="metric-grid" aria-label="핵심 지표">
+        <article class="metric-card">
+          <div class="metric-top">
+            <span>방문자 수</span>
+            <span class="metric-icon">01</span>
+          </div>
+          <strong class="metric-value" id="visitors">-</strong>
+          <span class="metric-note">세션 기준 고유 방문</span>
+        </article>
+        <article class="metric-card">
+          <div class="metric-top">
+            <span>평균 체류 시간</span>
+            <span class="metric-icon">02</span>
+          </div>
+          <strong class="metric-value" id="stay">-</strong>
+          <span class="metric-note">CTA 클릭, 제출, 이탈 시 기록</span>
+        </article>
+        <article class="metric-card">
+          <div class="metric-top">
+            <span>CTA 클릭 수</span>
+            <span class="metric-icon">03</span>
+          </div>
+          <strong class="metric-value" id="ctaClicks">-</strong>
+          <span class="metric-note">신청 모달을 연 클릭</span>
+        </article>
+        <article class="metric-card">
+          <div class="metric-top">
+            <span>정보 제출 수</span>
+            <span class="metric-icon">04</span>
+          </div>
+          <strong class="metric-value" id="submits">-</strong>
+          <span class="metric-note">leads 테이블 저장 기준</span>
+        </article>
+      </section>
+
+      <section class="dashboard-grid">
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">전환 퍼널</h2>
+              <div class="panel-subtitle">방문에서 제출까지의 현재 흐름</div>
+            </div>
+            <div class="updated" id="funnelUpdated">-</div>
+          </div>
+
+          <div class="funnel" id="funnelChart">
+            <div class="empty">데이터를 불러오는 중입니다.</div>
+          </div>
+
+          <div class="rate-grid">
+            <div class="rate-card">
+              방문 대비 CTA 클릭률
+              <strong id="ctaRate">-</strong>
+            </div>
+            <div class="rate-card">
+              방문 대비 제출 전환율
+              <strong id="conversionRate">-</strong>
+            </div>
+            <div class="rate-card">
+              CTA 클릭 후 제출률
+              <strong id="submitAfterClick">-</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">최근 7일 흐름</h2>
+              <div class="panel-subtitle">일자별 방문 규모</div>
+            </div>
+          </div>
+          <div class="spark" id="dailyChart">
+            <div class="empty">데이터를 불러오는 중입니다.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">일자별 운영 테이블</h2>
+            <div class="panel-subtitle">최근 7일 방문, CTA 클릭, 제출 수</div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>날짜</th>
+                <th>방문</th>
+                <th>CTA 클릭</th>
+                <th>제출</th>
+                <th>클릭률</th>
+                <th>전환율</th>
+              </tr>
+            </thead>
+            <tbody id="dailyTable">
+              <tr>
+                <td colspan="6">데이터를 불러오는 중입니다.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <section class="view" id="leadsView">
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">신청자 목록</h2>
+            <div class="panel-subtitle">전화번호와 이메일은 개인정보라 대시보드 토큰이 있어야 표시됩니다.</div>
+          </div>
+          <div class="updated" id="leadsUpdated">-</div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>제출 시각</th>
+                <th>전화번호</th>
+                <th>이메일</th>
+                <th>페이지</th>
+                <th>버전</th>
+              </tr>
+            </thead>
+            <tbody id="leadsTable">
+              <tr>
+                <td colspan="5">신청자 데이터를 불러오려면 새로고침을 눌러주세요.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const elements = {
+      visitors: document.getElementById("visitors"),
+      stay: document.getElementById("stay"),
+      ctaClicks: document.getElementById("ctaClicks"),
+      submits: document.getElementById("submits"),
+      ctaRate: document.getElementById("ctaRate"),
+      conversionRate: document.getElementById("conversionRate"),
+      submitAfterClick: document.getElementById("submitAfterClick"),
+      updatedAt: document.getElementById("updatedAt"),
+      funnelUpdated: document.getElementById("funnelUpdated"),
+      leadsUpdated: document.getElementById("leadsUpdated"),
+      eventHealth: document.getElementById("eventHealth"),
+      leadHealth: document.getElementById("leadHealth"),
+      dailyChart: document.getElementById("dailyChart"),
+      dailyTable: document.getElementById("dailyTable"),
+      leadsTable: document.getElementById("leadsTable"),
+      funnelChart: document.getElementById("funnelChart"),
+      refreshButton: document.getElementById("refreshButton"),
+      tabs: Array.from(document.querySelectorAll("[data-view-target]")),
+      views: Array.from(document.querySelectorAll(".view"))
+    };
+
+    let activeView = "overviewView";
+
+    function formatNumber(value) {
+      return new Intl.NumberFormat("ko-KR").format(value || 0);
+    }
+
+    function formatDuration(seconds) {
+      if (!seconds) return "0초";
+      if (seconds < 60) return `${seconds}초`;
+      const minutes = Math.floor(seconds / 60);
+      const restSeconds = seconds % 60;
+      return restSeconds ? `${minutes}분 ${restSeconds}초` : `${minutes}분`;
+    }
+
+    function formatPercent(value) {
+      return `${Number(value || 0).toFixed(1)}%`;
+    }
+
+    function percent(numerator, denominator) {
+      if (!denominator) return 0;
+      return Math.round((numerator / denominator) * 1000) / 10;
+    }
+
+    function formatDateTime(value) {
+      return new Intl.DateTimeFormat("ko-KR", {
+        dateStyle: "medium",
+        timeStyle: "short"
+      }).format(new Date(value));
+    }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function setActiveView(viewId) {
+      activeView = viewId;
+      elements.tabs.forEach((tab) => {
+        tab.classList.toggle("is-active", tab.dataset.viewTarget === viewId);
+      });
+      elements.views.forEach((view) => {
+        view.classList.toggle("is-active", view.id === viewId);
+      });
+    }
+
+    function renderFunnel(totals) {
+      const visitors = totals.visitors || 0;
+      const clicks = totals.ctaClicks || 0;
+      const submits = totals.trackedSubmits || totals.leadSubmitEvents || 0;
+      const max = Math.max(1, visitors, clicks, submits);
+      const steps = [
+        ["방문", visitors],
+        ["CTA 클릭", clicks],
+        ["제출 이벤트", submits]
+      ];
+
+      elements.funnelChart.innerHTML = steps.map(([name, value]) => {
+        const width = Math.max(value ? 4 : 0, Math.round((value / max) * 100));
+        return `
+          <div class="funnel-step">
+            <div class="funnel-name">${name}</div>
+            <div class="funnel-bar" aria-label="${name} ${value}">
+              <span style="--width: ${width}%"></span>
+            </div>
+            <div class="funnel-value">${formatNumber(value)}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderDailyChart(daily) {
+      const maxVisitors = Math.max(1, ...daily.map((item) => item.visitors));
+      elements.dailyChart.innerHTML = daily.map((item) => {
+        const width = Math.max(item.visitors ? 4 : 0, Math.round((item.visitors / maxVisitors) * 100));
+        return `
+          <div class="spark-row">
+            <span>${item.date.slice(5)}</span>
+            <div class="spark-bar" aria-label="${item.date} 방문자 ${item.visitors}명">
+              <span style="--width: ${width}%"></span>
+            </div>
+            <span class="spark-count">방문 ${formatNumber(item.visitors)}</span>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderDailyTable(daily) {
+      elements.dailyTable.innerHTML = daily.map((item) => {
+        const clickRate = percent(item.ctaClicks, item.visitors);
+        const conversionRate = percent(item.submits, item.visitors);
+        return `
+          <tr>
+            <td>${item.date}</td>
+            <td>${formatNumber(item.visitors)}</td>
+            <td>${formatNumber(item.ctaClicks)}</td>
+            <td>${formatNumber(item.submits)}</td>
+            <td>${formatPercent(clickRate)}</td>
+            <td>${formatPercent(conversionRate)}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function renderLeads(leads) {
+      if (!leads.length) {
+        elements.leadsTable.innerHTML = `<tr><td colspan="5">아직 제출된 신청자가 없습니다.</td></tr>`;
+        return;
+      }
+
+      elements.leadsTable.innerHTML = leads.map((lead) => `
+        <tr>
+          <td>${formatDateTime(lead.created_at)}</td>
+          <td class="lead-phone">${escapeHtml(lead.phone)}</td>
+          <td class="lead-email">${escapeHtml(lead.email || "미입력")}</td>
+          <td>${escapeHtml(lead.page || "-")}</td>
+          <td>${escapeHtml(lead.variant || "A")}</td>
+        </tr>
+      `).join("");
+    }
+
+    async function loadAnalytics() {
+      let response = await fetch("/api/analytics");
+
+      if (response.status === 401) {
+        const nextToken = window.prompt("대시보드 접근 토큰을 입력해주세요.");
+        if (nextToken) {
+          response = await fetch("/api/analytics", {
+            headers: { "x-dashboard-token": nextToken }
+          });
+        }
+      }
+
+      if (!response.ok) throw new Error("analytics_failed");
+      const data = await response.json();
+      const totals = data.totals;
+
+      elements.visitors.textContent = formatNumber(totals.visitors);
+      elements.stay.textContent = formatDuration(totals.averageStaySeconds);
+      elements.ctaClicks.textContent = formatNumber(totals.ctaClicks);
+      elements.submits.textContent = formatNumber(totals.submits);
+      elements.ctaRate.textContent = formatPercent(totals.ctaClickRate);
+      elements.conversionRate.textContent = formatPercent(totals.conversionRate);
+      elements.submitAfterClick.textContent = formatPercent(totals.submitRateAfterClick);
+      elements.updatedAt.textContent = `업데이트 ${formatDateTime(data.updatedAt)}`;
+      elements.funnelUpdated.textContent = formatDateTime(data.updatedAt);
+      elements.eventHealth.textContent = totals.pageViews || totals.ctaClicks ? "정상" : "대기";
+      elements.leadHealth.textContent = totals.submits ? "정상" : "대기";
+
+      renderFunnel(totals);
+      renderDailyChart(data.daily);
+      renderDailyTable(data.daily);
+    }
+
+    async function loadLeads() {
+      let token = "";
+      if (!token) {
+        token = window.prompt("신청자 목록을 보려면 대시보드 접근 토큰을 입력해주세요.") || "";
+        if (!token) {
+          elements.leadsTable.innerHTML = `<tr><td colspan="5">토큰 입력이 취소되었습니다.</td></tr>`;
+          elements.leadsUpdated.textContent = "인증 필요";
+          return;
+        }
+      }
+
+      const response = await fetch("/api/leads-list", {
+        headers: token ? { "x-dashboard-token": token } : {}
+      });
+
+      if (response.status === 403) {
+        elements.leadsTable.innerHTML = `<tr><td colspan="5">Vercel Environment Variables에 DASHBOARD_TOKEN을 먼저 추가해야 신청자 목록을 볼 수 있습니다.</td></tr>`;
+        elements.leadsUpdated.textContent = "토큰 설정 필요";
+        return;
+      }
+
+      if (response.status === 401) {
+        elements.leadsTable.innerHTML = `<tr><td colspan="5">토큰이 올바르지 않습니다. 신청자 목록 탭을 다시 열거나 새로고침을 눌러 다시 입력해주세요.</td></tr>`;
+        elements.leadsUpdated.textContent = "인증 실패";
+        return;
+      }
+
+      if (!response.ok) throw new Error("leads_failed");
+      const data = await response.json();
+      renderLeads(data.leads || []);
+      elements.leadsUpdated.textContent = `업데이트 ${formatDateTime(data.updatedAt)}`;
+    }
+
+    async function refreshCurrentView() {
+      elements.refreshButton.disabled = true;
+      elements.refreshButton.textContent = "동기화 중";
+
+      try {
+        if (activeView === "leadsView") {
+          await loadLeads();
+        } else {
+          await loadAnalytics();
+        }
+      } catch (error) {
+        if (activeView === "leadsView") {
+          elements.leadsTable.innerHTML = `<tr><td colspan="5">신청자 데이터를 불러오지 못했습니다.</td></tr>`;
+        } else {
+          elements.eventHealth.textContent = "오류";
+          elements.leadHealth.textContent = "오류";
+          elements.funnelChart.innerHTML = `<div class="error">대시보드 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.</div>`;
+          elements.dailyChart.innerHTML = `<div class="error">대시보드 데이터를 불러오지 못했습니다.</div>`;
+          elements.dailyTable.innerHTML = `<tr><td colspan="6">대시보드 데이터를 불러오지 못했습니다.</td></tr>`;
+        }
+      } finally {
+        elements.refreshButton.disabled = false;
+        elements.refreshButton.textContent = "새로고침";
+      }
+    }
+
+    elements.tabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        setActiveView(tab.dataset.viewTarget);
+        if (activeView === "leadsView") loadLeads().catch(() => {
+          elements.leadsTable.innerHTML = `<tr><td colspan="5">신청자 데이터를 불러오지 못했습니다.</td></tr>`;
+        });
+      });
+    });
+
+    elements.refreshButton.addEventListener("click", refreshCurrentView);
+    loadAnalytics();
+  </script>
+</body>
+</html>
