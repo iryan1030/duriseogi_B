@@ -489,6 +489,32 @@
       line-height: 1.1;
     }
 
+    .lead-filter {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .lead-filter-button {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 5px 10px;
+      border: 1px solid rgba(229, 229, 229, 0.16);
+      border-radius: 9999px;
+      color: var(--ash);
+      background: rgba(0, 0, 0, 0.24);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .lead-filter-button.is-active {
+      border-color: rgba(255, 255, 255, 0.82);
+      background: var(--white);
+      color: #0a0a0a;
+    }
+
     .table-wrap {
       overflow: hidden;
       border: 1px solid rgba(229, 229, 229, 0.1);
@@ -658,7 +684,8 @@
     </div>
 
     <div class="tabs" role="tablist" aria-label="대시보드 보기">
-      <button class="tab-button is-active" type="button" data-view-target="overviewView">성과 요약</button>
+      <button class="tab-button is-active" type="button" data-view-target="overviewView" data-dashboard-variant="A">A안 데이터</button>
+      <button class="tab-button" type="button" data-view-target="overviewView" data-dashboard-variant="B">B안 데이터</button>
       <button class="tab-button" type="button" data-view-target="leadsView">신청자 목록</button>
     </div>
 
@@ -669,7 +696,7 @@
           <h1 class="dashboard-heading">전환 상황을 한 화면에서 봅니다.</h1>
           <p>방문, 체류, CTA 클릭, 신청 제출을 같은 콘솔에서 확인합니다. 현재 화면은 자동 갱신하지 않고, 열 때와 새로고침 버튼을 누를 때 최신값을 가져옵니다.</p>
           <div class="status-row">
-            <span class="status-chip">Variant A</span>
+            <span class="status-chip" id="variantStatus">Variant A</span>
             <span class="status-chip">Supabase Connected</span>
             <span class="status-chip" id="updatedAt">업데이트 대기 중</span>
           </div>
@@ -814,7 +841,14 @@
             <h2 class="panel-title">신청자 목록</h2>
             <div class="panel-subtitle">전화번호와 이메일은 개인정보라 대시보드 토큰이 있어야 표시됩니다.</div>
           </div>
-          <div class="updated" id="leadsUpdated">-</div>
+          <div>
+            <div class="lead-filter" aria-label="신청자 버전 필터">
+              <button class="lead-filter-button is-active" type="button" data-lead-variant="all">전체</button>
+              <button class="lead-filter-button" type="button" data-lead-variant="A">A안</button>
+              <button class="lead-filter-button" type="button" data-lead-variant="B">B안</button>
+            </div>
+            <div class="updated" id="leadsUpdated">-</div>
+          </div>
         </div>
         <div class="table-wrap">
           <table>
@@ -848,6 +882,7 @@
       conversionRate: document.getElementById("conversionRate"),
       submitAfterClick: document.getElementById("submitAfterClick"),
       updatedAt: document.getElementById("updatedAt"),
+      variantStatus: document.getElementById("variantStatus"),
       funnelUpdated: document.getElementById("funnelUpdated"),
       leadsUpdated: document.getElementById("leadsUpdated"),
       eventHealth: document.getElementById("eventHealth"),
@@ -858,10 +893,15 @@
       funnelChart: document.getElementById("funnelChart"),
       refreshButton: document.getElementById("refreshButton"),
       tabs: Array.from(document.querySelectorAll("[data-view-target]")),
+      leadFilters: Array.from(document.querySelectorAll("[data-lead-variant]")),
       views: Array.from(document.querySelectorAll(".view"))
     };
 
     let activeView = "overviewView";
+    let latestAnalytics = null;
+    let cachedLeads = [];
+    let activeDashboardVariant = "A";
+    let activeLeadVariant = "all";
 
     function formatNumber(value) {
       return new Intl.NumberFormat("ko-KR").format(value || 0);
@@ -900,10 +940,10 @@
         .replaceAll("'", "&#039;");
     }
 
-    function setActiveView(viewId) {
+    function setActiveView(viewId, activeTab = null) {
       activeView = viewId;
       elements.tabs.forEach((tab) => {
-        tab.classList.toggle("is-active", tab.dataset.viewTarget === viewId);
+        tab.classList.toggle("is-active", activeTab ? tab === activeTab : tab.dataset.viewTarget === viewId);
       });
       elements.views.forEach((view) => {
         view.classList.toggle("is-active", view.id === viewId);
@@ -968,13 +1008,34 @@
       }).join("");
     }
 
+    function getActiveAnalyticsSummary(data) {
+      return data?.variants?.[activeDashboardVariant] || {
+        totals: {
+          visitors: 0,
+          pageViews: 0,
+          averageStaySeconds: 0,
+          ctaClicks: 0,
+          submits: 0,
+          trackedSubmits: 0,
+          ctaClickRate: 0,
+          conversionRate: 0,
+          submitRateAfterClick: 0
+        },
+        daily: []
+      };
+    }
+
     function renderLeads(leads) {
-      if (!leads.length) {
+      const visibleLeads = activeLeadVariant === "all"
+        ? leads
+        : leads.filter((lead) => String(lead.variant || "A") === activeLeadVariant);
+
+      if (!visibleLeads.length) {
         elements.leadsTable.innerHTML = `<tr><td colspan="5">아직 제출된 신청자가 없습니다.</td></tr>`;
         return;
       }
 
-      elements.leadsTable.innerHTML = leads.map((lead) => `
+      elements.leadsTable.innerHTML = visibleLeads.map((lead) => `
         <tr>
           <td>${formatDateTime(lead.created_at)}</td>
           <td class="lead-phone">${escapeHtml(lead.phone)}</td>
@@ -986,20 +1047,13 @@
     }
 
     async function loadAnalytics() {
-      let response = await fetch("/api/analytics");
-
-      if (response.status === 401) {
-        const nextToken = window.prompt("대시보드 접근 토큰을 입력해주세요.");
-        if (nextToken) {
-          response = await fetch("/api/analytics", {
-            headers: { "x-dashboard-token": nextToken }
-          });
-        }
-      }
+      const response = await fetch("/api/analytics");
 
       if (!response.ok) throw new Error("analytics_failed");
       const data = await response.json();
-      const totals = data.totals;
+      latestAnalytics = data;
+      const summary = getActiveAnalyticsSummary(data);
+      const totals = summary.totals;
 
       elements.visitors.textContent = formatNumber(totals.visitors);
       elements.stay.textContent = formatDuration(totals.averageStaySeconds);
@@ -1010,12 +1064,13 @@
       elements.submitAfterClick.textContent = formatPercent(totals.submitRateAfterClick);
       elements.updatedAt.textContent = `업데이트 ${formatDateTime(data.updatedAt)}`;
       elements.funnelUpdated.textContent = formatDateTime(data.updatedAt);
+      elements.variantStatus.textContent = `Variant ${activeDashboardVariant}`;
       elements.eventHealth.textContent = totals.pageViews || totals.ctaClicks ? "정상" : "대기";
       elements.leadHealth.textContent = totals.submits ? "정상" : "대기";
 
       renderFunnel(totals);
-      renderDailyChart(data.daily);
-      renderDailyTable(data.daily);
+      renderDailyChart(summary.daily);
+      renderDailyTable(summary.daily);
     }
 
     async function loadLeads() {
@@ -1047,7 +1102,8 @@
 
       if (!response.ok) throw new Error("leads_failed");
       const data = await response.json();
-      renderLeads(data.leads || []);
+      cachedLeads = data.leads || [];
+      renderLeads(cachedLeads);
       elements.leadsUpdated.textContent = `업데이트 ${formatDateTime(data.updatedAt)}`;
     }
 
@@ -1079,10 +1135,46 @@
 
     elements.tabs.forEach((tab) => {
       tab.addEventListener("click", () => {
-        setActiveView(tab.dataset.viewTarget);
+        if (tab.dataset.dashboardVariant) {
+          activeDashboardVariant = tab.dataset.dashboardVariant;
+        }
+        setActiveView(tab.dataset.viewTarget, tab);
+        if (activeView === "overviewView") {
+          if (latestAnalytics) {
+            const summary = getActiveAnalyticsSummary(latestAnalytics);
+            const totals = summary.totals;
+            elements.visitors.textContent = formatNumber(totals.visitors);
+            elements.stay.textContent = formatDuration(totals.averageStaySeconds);
+            elements.ctaClicks.textContent = formatNumber(totals.ctaClicks);
+            elements.submits.textContent = formatNumber(totals.submits);
+            elements.ctaRate.textContent = formatPercent(totals.ctaClickRate);
+            elements.conversionRate.textContent = formatPercent(totals.conversionRate);
+            elements.submitAfterClick.textContent = formatPercent(totals.submitRateAfterClick);
+            elements.variantStatus.textContent = `Variant ${activeDashboardVariant}`;
+            elements.eventHealth.textContent = totals.pageViews || totals.ctaClicks ? "정상" : "대기";
+            elements.leadHealth.textContent = totals.submits ? "정상" : "대기";
+            renderFunnel(totals);
+            renderDailyChart(summary.daily);
+            renderDailyTable(summary.daily);
+          } else {
+            loadAnalytics().catch(() => {
+              elements.dailyTable.innerHTML = `<tr><td colspan="6">대시보드 데이터를 불러오지 못했습니다.</td></tr>`;
+            });
+          }
+        }
         if (activeView === "leadsView") loadLeads().catch(() => {
           elements.leadsTable.innerHTML = `<tr><td colspan="5">신청자 데이터를 불러오지 못했습니다.</td></tr>`;
         });
+      });
+    });
+
+    elements.leadFilters.forEach((button) => {
+      button.addEventListener("click", () => {
+        activeLeadVariant = button.dataset.leadVariant || "all";
+        elements.leadFilters.forEach((filter) => {
+          filter.classList.toggle("is-active", filter === button);
+        });
+        renderLeads(cachedLeads);
       });
     });
 
