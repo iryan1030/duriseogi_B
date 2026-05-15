@@ -678,7 +678,7 @@
         <div class="breadcrumb">두리서기 / <strong>랜딩페이지 A</strong> / Admin</div>
       </div>
       <div class="top-actions">
-        <a class="ghost-button" href="/" target="_blank" rel="noreferrer">랜딩페이지 열기</a>
+        <a class="ghost-button" id="landingPageLink" href="https://duriseogi-a.vercel.app/" target="_blank" rel="noreferrer">랜딩페이지 A 열기</a>
         <button class="pill" type="button" id="refreshButton">새로고침</button>
       </div>
     </div>
@@ -883,6 +883,7 @@
       submitAfterClick: document.getElementById("submitAfterClick"),
       updatedAt: document.getElementById("updatedAt"),
       variantStatus: document.getElementById("variantStatus"),
+      landingPageLink: document.getElementById("landingPageLink"),
       funnelUpdated: document.getElementById("funnelUpdated"),
       leadsUpdated: document.getElementById("leadsUpdated"),
       eventHealth: document.getElementById("eventHealth"),
@@ -902,6 +903,10 @@
     let cachedLeads = [];
     let activeDashboardVariant = "A";
     let activeLeadVariant = "all";
+    const landingPageUrls = {
+      A: "https://duriseogi-a.vercel.app/",
+      B: "https://duriseogi-b.vercel.app/"
+    };
 
     function formatNumber(value) {
       return new Intl.NumberFormat("ko-KR").format(value || 0);
@@ -948,6 +953,12 @@
       elements.views.forEach((view) => {
         view.classList.toggle("is-active", view.id === viewId);
       });
+    }
+
+    function updateLandingPageLink() {
+      const variant = activeDashboardVariant === "B" ? "B" : "A";
+      elements.landingPageLink.href = landingPageUrls[variant];
+      elements.landingPageLink.textContent = `랜딩페이지 ${variant} 열기`;
     }
 
     function renderFunnel(totals) {
@@ -1065,6 +1076,7 @@
       elements.updatedAt.textContent = `업데이트 ${formatDateTime(data.updatedAt)}`;
       elements.funnelUpdated.textContent = formatDateTime(data.updatedAt);
       elements.variantStatus.textContent = `Variant ${activeDashboardVariant}`;
+      updateLandingPageLink();
       elements.eventHealth.textContent = totals.pageViews || totals.ctaClicks ? "정상" : "대기";
       elements.leadHealth.textContent = totals.submits ? "정상" : "대기";
 
@@ -1137,6 +1149,7 @@
       tab.addEventListener("click", () => {
         if (tab.dataset.dashboardVariant) {
           activeDashboardVariant = tab.dataset.dashboardVariant;
+          updateLandingPageLink();
         }
         setActiveView(tab.dataset.viewTarget, tab);
         if (activeView === "overviewView") {
