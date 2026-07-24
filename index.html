@@ -634,7 +634,20 @@
       font-size: 1rem;
       line-height: 1.82;
     }
-    .final-cta .cta { align-self: center; margin-top: 34px; }
+    .final-cta-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin-top: 34px;
+    }
+    .final-cta .cta { align-self: center; }
+    .cta-note {
+      color: var(--soft);
+      font-size: 0.88rem;
+      font-weight: 800;
+      white-space: nowrap;
+    }
     .process { margin-top: 22px; color: var(--soft); font-size: 0.92rem; line-height: 1.7; }
     .contact-link {
       display: inline-flex;
@@ -850,6 +863,11 @@
       .section-head { margin-bottom: 34px; }
       .section-head h2, .final-cta h2 { font-size: 1.88rem; line-height: 1.22; }
       .section-head p, .final-cta p { font-size: 0.92rem; }
+      .final-cta-action {
+        width: 100%;
+        flex-direction: column;
+        gap: 10px;
+      }
       .feature-list { gap: 42px; }
       .feature-item { gap: 16px; }
       .feature-media { min-height: 260px; }
@@ -985,7 +1003,7 @@
             매주 한 통, 나와 비슷한 고민을 가진 낯선 사람과 익명으로 편지를 주고받습니다.
           </p>
           <div class="hero-actions">
-            <a class="cta" href="#cta" data-open-lead>2,000원으로 첫 편지 보내기</a>
+            <a class="cta" href="#cta" data-open-lead>무료로 첫 편지 보내기</a>
           </div>
         </div>
       </div>
@@ -1356,7 +1374,10 @@
       <div class="final-cta-inner">
         <h2>지금 바로 신청하고,<br />첫 번째 익명 편지를 받아보세요.</h2>
         <p>프로필 사진도, 본명도 필요 없습니다. 익명으로 시작해 천천히 이어지는 대화를 경험해보세요.</p>
-        <a class="cta" href="#lead" data-open-lead>2,000원으로 시작하기</a>
+        <div class="final-cta-action">
+          <a class="cta" href="#lead" data-open-lead>첫 달 무료로 시작하기</a>
+          <span class="cta-note">첫 달 이후 월 2,000원</span>
+        </div>
         <div class="process">
           3분 성향 설문 → 72시간 내 매칭 → 매주 편지 교환
         </div>
