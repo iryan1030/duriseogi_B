@@ -1444,6 +1444,7 @@
       return nextId;
     })();
     const analyticsStartedAt = Date.now();
+    const trackedPage = `${window.location.pathname || "/"}${window.location.search || ""}`;
     let durationTracked = false;
 
     function trackEvent(eventName, extra = {}) {
@@ -1451,7 +1452,7 @@
         eventName,
         sessionId: analyticsSessionId,
         variant: "B",
-        page: window.location.pathname || "/",
+        page: trackedPage,
         referrer: document.referrer || "",
         createdAt: new Date().toISOString(),
         ...extra
@@ -1655,7 +1656,7 @@
       const payload = {
         phone: leadForm.phone.value.trim(),
         email: leadForm.email.value.trim(),
-        page: "두리서기 랜딩페이지",
+        page: trackedPage,
         variant: "B",
         createdAt: new Date().toISOString()
       };
